@@ -15,6 +15,7 @@ app.use(
   cors({
     origin: FRONTEND_URL,
     credentials: true,
+    allowedHeaders: "*",
   })
 );
 app.use(cookieParser());
