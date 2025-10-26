@@ -38,8 +38,8 @@ const sendTokenResponse = (user, statusCode, res) => {
   //   Cookie options
   const cookieOptions = {
     httpOnly: true,
-    // secure: NODE_ENV === "production",
-    // sameSite: "strict",
+    secure: NODE_ENV === "production",
+    sameSite: NODE_ENV === "production" ? "none" : "strict",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   };
 
