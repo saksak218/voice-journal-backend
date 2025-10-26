@@ -11,13 +11,7 @@ import adminRouter from "./routes/admin.routes.js";
 
 const app = express();
 
-app.use(
-  cors({
-    origin: FRONTEND_URL,
-    credentials: true,
-    allowedHeaders: "*",
-  })
-);
+app.use(cors());
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
