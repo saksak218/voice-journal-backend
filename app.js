@@ -19,6 +19,7 @@ app.use(
       "https://voice-journal-frontend-goe1hmm3x-suleman-altafs-projects.vercel.app",
     ],
     credentials: true,
+    preflightContinue: true,
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
