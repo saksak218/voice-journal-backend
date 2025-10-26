@@ -185,28 +185,28 @@ export const refreshToken = async (req, res, next) => {
   }
 };
 
-export const logout = async (req, res, next) => {
-  try {
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: NODE_ENV === "production",
-      sameSite: "strict",
-    });
-    if (req.user.role === "admin") {
-      res.clearCookie("adminToken", {
-        httpOnly: true,
-        secure: NODE_ENV === "production",
-        sameSite: "strict",
-      });
-    }
-    res.status(200).json({
-      success: true,
-      message: "Logged out successfully",
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+// export const logout = async (req, res, next) => {
+//   try {
+//     res.clearCookie("refreshToken", {
+//       httpOnly: true,
+//       secure: NODE_ENV === "production",
+//       sameSite: "strict",
+//     });
+//     if (req.user.role === "admin") {
+//       res.clearCookie("adminToken", {
+//         httpOnly: true,
+//         secure: NODE_ENV === "production",
+//         sameSite: "strict",
+//       });
+//     }
+//     res.status(200).json({
+//       success: true,
+//       message: "Logged out successfully",
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
 
 export const currentUser = async (req, res, next) => {
   try {
