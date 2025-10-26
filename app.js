@@ -13,9 +13,14 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["https://voice-journal-frontend.vercel.app", FRONTEND_URL],
+    origin: [
+      "https://voice-journal-frontend.vercel.app",
+      FRONTEND_URL,
+      "https://voice-journal-frontend-goe1hmm3x-suleman-altafs-projects.vercel.app",
+    ],
     credentials: true,
-    allowedHeaders: "*",
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
 );
 app.use(cookieParser());
