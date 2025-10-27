@@ -17,7 +17,6 @@ const generateAccessToken = (userId) => {
 };
 
 const generateRefreshToken = (userId) => {
-  // Create refresh token
   return jwt.sign({ id: userId }, JWT_REFRESH_SECRET, {
     expiresIn: JWT_REFRESH_EXPIRE,
   });
@@ -29,58 +28,14 @@ const generateAdminToken = (userId, userRole) => {
   });
 };
 
-// const sendTokenResponse = (user, statusCode, res) => {
-//   // Generate tokens
-//   const accessToken = generateAccessToken(user._id);
-//   const refreshToken = generateRefreshToken(user._id);
-//   const adminToken = generateAdminToken(user._id, user.role);
-
-//   //   Cookie options
-//   const cookieOptions = {
-//     httpOnly: true,
-//     secure: NODE_ENV === "production",
-//     sameSite: NODE_ENV === "production" ? "none" : "strict",
-//     // sameSite: NODE_ENV === "production" ? "none" : "strict",
-//     maxAge: 7 * 24 * 60 * 60 * 1000,
-//   };
-
-//   // Set refresh token in HTTP-only cookie
-//   res.cookie("refreshToken", refreshToken, cookieOptions);
-//   if (user.role === "admin") {
-//     res.cookie("adminToken", adminToken, cookieOptions);
-//   }
-//   res.status(statusCode).json({
-//     success: true,
-//     data: {
-//       user: {
-//         id: user._id,
-//         email: user.email,
-//         name: user.name,
-//         role: user.role,
-//       },
-//       accessToken,
-//     },
-//   });
-// };
-
 const sendTokenResponse = (user, statusCode, res) => {
+  // Generate tokens
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
-  const adminToken = generateAdminToken(user._id, user.role);
+  const adminToken =
+    user.role === "admin" ? generateAdminToken(user._id, user.role) : null;
 
-  const cookieOptions = {
-    httpOnly: true,
-    secure: NODE_ENV === "production",
-    sameSite: NODE_ENV === "production" ? "none" : "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    path: "/",
-  };
-
-  res.cookie("refreshToken", refreshToken, cookieOptions);
-  if (user.role === "admin") {
-    res.cookie("adminToken", adminToken, cookieOptions);
-  }
-
+  // Return tokens in response body instead of cookies
   res.status(statusCode).json({
     success: true,
     data: {
@@ -91,6 +46,8 @@ const sendTokenResponse = (user, statusCode, res) => {
         role: user.role,
       },
       accessToken,
+      refreshToken,
+      ...(adminToken && { adminToken }), // Only include if admin
     },
   });
 };
@@ -98,7 +55,7 @@ const sendTokenResponse = (user, statusCode, res) => {
 export const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
-    console.log("hi");
+
     // Validation
     if (!name || !email || !password) {
       const error = new Error("Please provide email, password, and name");
@@ -167,7 +124,7 @@ export const login = async (req, res, next) => {
     await user.save();
 
     // Send token response
-    sendTokenResponse(user, 201, res);
+    sendTokenResponse(user, 200, res);
   } catch (error) {
     next(error);
   }
@@ -175,11 +132,13 @@ export const login = async (req, res, next) => {
 
 export const refreshToken = async (req, res, next) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
-    console.log(refreshToken);
+    // Get refresh token from request body or Authorization header
+    const refreshToken =
+      req.body.refreshToken ||
+      req.headers.authorization?.replace("Bearer ", "");
 
     if (!refreshToken) {
-      const error = new Error("No refresh token found");
+      const error = new Error("No refresh token provided");
       error.statusCode = 401;
       throw error;
     }
@@ -189,14 +148,15 @@ export const refreshToken = async (req, res, next) => {
 
     // Check if User still exists
     const user = await User.findById(decoded.id);
-    if (!user) {
+    if (!user || !user.isActive) {
       const error = new Error("User not found or inactive");
       error.statusCode = 401;
       throw error;
     }
 
-    // Generate the access token
+    // Generate new access token
     const newAccessToken = generateAccessToken(user._id);
+
     res.status(200).json({
       success: true,
       message: "Token refreshed successfully",
@@ -206,11 +166,14 @@ export const refreshToken = async (req, res, next) => {
     });
   } catch (error) {
     if (error.name === "TokenExpiredError") {
-      // Clear the expired cookie
-      res.clearCookie("refreshToken");
       return res.status(401).json({
         success: false,
         message: "Refresh token expired. Please login again.",
+      });
+    } else if (error.name === "JsonWebTokenError") {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid refresh token. Please login again.",
       });
     } else {
       next(error);
@@ -218,43 +181,10 @@ export const refreshToken = async (req, res, next) => {
   }
 };
 
-// export const logout = async (req, res, next) => {
-//   try {
-//     res.clearCookie("refreshToken", {
-//       httpOnly: true,
-//       secure: NODE_ENV === "production",
-//       sameSite: "strict",
-//     });
-//     if (req.user.role === "admin") {
-//       res.clearCookie("adminToken", {
-//         httpOnly: true,
-//         secure: NODE_ENV === "production",
-//         sameSite: "strict",
-//       });
-//     }
-//     res.status(200).json({
-//       success: true,
-//       message: "Logged out successfully",
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
-
 export const logout = async (req, res, next) => {
   try {
-    const cookieOptions = {
-      httpOnly: true,
-      secure: NODE_ENV === "production",
-      sameSite: NODE_ENV === "production" ? "none" : "strict",
-      path: "/",
-    };
-
-    res.clearCookie("refreshToken", cookieOptions);
-    if (req.user.role === "admin") {
-      res.clearCookie("adminToken", cookieOptions);
-    }
-
+    // With localStorage, logout is handled on client side
+    // But you can track logout on backend if needed
     res.status(200).json({
       success: true,
       message: "Logged out successfully",
@@ -268,6 +198,12 @@ export const currentUser = async (req, res, next) => {
   try {
     const { id } = req.params;
     const user = await User.findById(id);
+
+    if (!user) {
+      const error = new Error("User not found");
+      error.statusCode = 404;
+      throw error;
+    }
 
     res.status(200).json({
       success: true,
