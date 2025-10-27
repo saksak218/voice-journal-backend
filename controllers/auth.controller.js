@@ -29,26 +29,58 @@ const generateAdminToken = (userId, userRole) => {
   });
 };
 
+// const sendTokenResponse = (user, statusCode, res) => {
+//   // Generate tokens
+//   const accessToken = generateAccessToken(user._id);
+//   const refreshToken = generateRefreshToken(user._id);
+//   const adminToken = generateAdminToken(user._id, user.role);
+
+//   //   Cookie options
+//   const cookieOptions = {
+//     httpOnly: true,
+//     secure: NODE_ENV === "production",
+//     sameSite: NODE_ENV === "production" ? "none" : "strict",
+//     // sameSite: NODE_ENV === "production" ? "none" : "strict",
+//     maxAge: 7 * 24 * 60 * 60 * 1000,
+//   };
+
+//   // Set refresh token in HTTP-only cookie
+//   res.cookie("refreshToken", refreshToken, cookieOptions);
+//   if (user.role === "admin") {
+//     res.cookie("adminToken", adminToken, cookieOptions);
+//   }
+//   res.status(statusCode).json({
+//     success: true,
+//     data: {
+//       user: {
+//         id: user._id,
+//         email: user.email,
+//         name: user.name,
+//         role: user.role,
+//       },
+//       accessToken,
+//     },
+//   });
+// };
+
 const sendTokenResponse = (user, statusCode, res) => {
-  // Generate tokens
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
   const adminToken = generateAdminToken(user._id, user.role);
 
-  //   Cookie options
   const cookieOptions = {
     httpOnly: true,
     secure: NODE_ENV === "production",
     sameSite: NODE_ENV === "production" ? "none" : "strict",
-    // sameSite: NODE_ENV === "production" ? "none" : "strict",
     maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/",
   };
 
-  // Set refresh token in HTTP-only cookie
   res.cookie("refreshToken", refreshToken, cookieOptions);
   if (user.role === "admin") {
     res.cookie("adminToken", adminToken, cookieOptions);
   }
+
   res.status(statusCode).json({
     success: true,
     data: {
@@ -186,20 +218,43 @@ export const refreshToken = async (req, res, next) => {
   }
 };
 
+// export const logout = async (req, res, next) => {
+//   try {
+//     res.clearCookie("refreshToken", {
+//       httpOnly: true,
+//       secure: NODE_ENV === "production",
+//       sameSite: "strict",
+//     });
+//     if (req.user.role === "admin") {
+//       res.clearCookie("adminToken", {
+//         httpOnly: true,
+//         secure: NODE_ENV === "production",
+//         sameSite: "strict",
+//       });
+//     }
+//     res.status(200).json({
+//       success: true,
+//       message: "Logged out successfully",
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
 export const logout = async (req, res, next) => {
   try {
-    res.clearCookie("refreshToken", {
+    const cookieOptions = {
       httpOnly: true,
       secure: NODE_ENV === "production",
-      sameSite: "strict",
-    });
+      sameSite: NODE_ENV === "production" ? "none" : "strict",
+      path: "/",
+    };
+
+    res.clearCookie("refreshToken", cookieOptions);
     if (req.user.role === "admin") {
-      res.clearCookie("adminToken", {
-        httpOnly: true,
-        secure: NODE_ENV === "production",
-        sameSite: "strict",
-      });
+      res.clearCookie("adminToken", cookieOptions);
     }
+
     res.status(200).json({
       success: true,
       message: "Logged out successfully",
