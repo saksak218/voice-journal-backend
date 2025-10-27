@@ -39,9 +39,8 @@ const sendTokenResponse = (user, statusCode, res) => {
   const cookieOptions = {
     httpOnly: true,
     secure: NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: NODE_ENV === "production" ? "none" : "strict",
     // sameSite: NODE_ENV === "production" ? "none" : "strict",
-    path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   };
 
@@ -189,17 +188,17 @@ export const refreshToken = async (req, res, next) => {
 
 export const logout = async (req, res, next) => {
   try {
-    const cookieOptions = {
+    res.clearCookie("refreshToken", {
       httpOnly: true,
       secure: NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-    };
-
-    res.clearCookie("refreshToken", cookieOptions);
-    if (req.user?.role === "admin") {
-      // Added null check for safety
-      res.clearCookie("adminToken", cookieOptions);
+      sameSite: "strict",
+    });
+    if (req.user.role === "admin") {
+      res.clearCookie("adminToken", {
+        httpOnly: true,
+        secure: NODE_ENV === "production",
+        sameSite: "strict",
+      });
     }
     res.status(200).json({
       success: true,
